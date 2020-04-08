@@ -7,8 +7,7 @@
 
 
 
-std::wstring s2ws(const std::string& s)
-{
+std::wstring s2ws(const std::string& s) {
     int len;
     int slength = (int)s.length() + 1;
     len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
@@ -19,6 +18,13 @@ std::wstring s2ws(const std::string& s)
     return r;
 }
 
+
+bool SerialPort::ClearReadBuffer(){
+    bufferDataLength = 0;
+    bufferWriteCursor = 0;
+    bufferReadCursor = 0;
+    return false;
+}
 
 bool SerialPort::Close() {
     if (serialPort != INVALID_HANDLE_VALUE) {
@@ -33,7 +39,7 @@ bool SerialPort::Close() {
 }
 
 
-bool SerialPort::Open(std::string name){
+bool SerialPort::Open(std::string name) {
     this->name = name;
 	serialPort = CreateFile(s2ws(name).c_str(), GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
@@ -87,8 +93,52 @@ bool SerialPort::Open(std::string name){
 	return !error;
 }
 
-bool SerialPort::ReadToBuffer()
-{
+unsigned char* SerialPort::Read(unsigned int length) {
+    //if write cursor not far enough in front of the read cursor so the read cursor 
+    //can read all of the bytes that it wants, return null, or do that shit by default
+    //because there's no code in here yet.
+	return nullptr;
+}
+
+unsigned char* SerialPort::ReadAll() {
+    unsigned char* data;
+    unsigned int length;
+    if (readWriteFlip) {
+        data = new unsigned char[1];
+        length = 1;
+        bufferReadCursor = 0;
+    }
+    else {
+        length = bufferWriteCursor - bufferReadCursor;
+        data = new unsigned char[length+1];
+        memcpy(data, &buffer[bufferReadCursor], sizeof(char)*length);
+        bufferReadCursor += length;
+    }
+    data[length - 1] = '\0';
+    return data;
+}
+
+char SerialPort::ReadChar() {
+    if (bufferReadCursor == bufferDataLength) {
+        bufferReadCursor = 0;
+        readWriteFlip = false;
+    }
+
+    char c = 0;
+    //if read cursor is behind the write cursor and the index of the read cursor is lower than the write cursor.
+    //or read cursor is ahead of the write cursor and the index of the read cursor is higher than the write cursor.
+    if (readWriteFlip ^ (bufferReadCursor < bufferWriteCursor)) {
+        c = buffer[bufferReadCursor];
+
+        ++bufferReadCursor;
+    }
+
+    //if(bufferReadCursor < bufferWriteCursor && )
+    std::cout << "character[" << bufferReadCursor << "] : " << c << std::endl;
+    return c;
+}
+
+bool SerialPort::ReadToBuffer() {
 
     ReadFile(serialPort, &serialData, bufferReadSizeB, &bytesRead, NULL); // what I tried to do, just outputs white space
     if (bytesRead > 0) {
@@ -100,6 +150,7 @@ bool SerialPort::ReadToBuffer()
         if (bytesRead + bufferWriteCursor > bufferSizeB) {
             bufferDataLength = bufferWriteCursor;
             bufferWriteCursor = 0;
+            readWriteFlip = true;
         }
 
         //copy the data read from the serial port to the buffer at the correct offset.
@@ -123,6 +174,7 @@ SerialPort::SerialPort() :
     bytesRead(0),
     bytesWritten(0),
     error(false),
+    readWriteFlip(false),
     serialPort(INVALID_HANDLE_VALUE),
     name("")
         {
@@ -138,17 +190,18 @@ SerialPort::~SerialPort() {
 
 void SerialPort::SetBufferSize(unsigned int bufferSizeKB) {
     delete buffer;
-    bufferDataLength = 0;
-    bufferWriteCursor = 0;
-    bufferReadCursor = 0;
+    ClearReadBuffer();
     this->bufferSizeKB = bufferSizeKB;
     bufferSizeB = bufferSizeKB * 1024;
     buffer = new unsigned char[bufferSizeB];
 }
 
-bool SerialPort::Write(char* data)
-{
+bool SerialPort::Write(unsigned char* data) {
 
     //WriteFile(serialPort, (LPCVOID)&oneChar, 1, &dwBytesWritten, NULL);
+    return false;
+}
+
+bool SerialPort::WriteChar(unsigned char c) {
     return false;
 }

@@ -149,6 +149,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
+    <ClInclude Include="IIO.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="SerialPort.h" />
     <ClInclude Include="TinyStream.h" />

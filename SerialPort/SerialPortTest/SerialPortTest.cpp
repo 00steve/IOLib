@@ -2,14 +2,20 @@
 //
 
 #include "../SerialPort/SerialPort.h"
+#include "../SerialPort/TinyStream.h"
 
 int main()
 {
     SerialPort sp = SerialPort();
+    TinyStream ts = TinyStream();
+
+    ts.SetInput(&sp);
+
     sp.Open("COM4");
 
     while (true) {
         sp.ReadToBuffer();
+        ts.Update();
     }
 
 

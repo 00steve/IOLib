@@ -4,9 +4,9 @@
 #include <string>
 #include <cstdlib>
 #include <windows.h>
+#include "IIO.h"
 
-
-class SerialPort {
+class SerialPort : public IIO {
 private:
 
 	unsigned char* buffer;
@@ -36,13 +36,23 @@ private:
 
 	std::string name;
 
+	bool readWriteFlip;
+
 	HANDLE serialPort;
 
 
 public:
+	bool ClearReadBuffer();
+
 	bool Close();
 
 	bool Open(std::string name);
+
+	unsigned char* Read(unsigned int length);
+
+	unsigned char* ReadAll();
+
+	char ReadChar();
 
 	bool ReadToBuffer();
 
@@ -52,6 +62,7 @@ public:
 	
 	void SetBufferSize(unsigned int bufferSizeMB);
 
-	bool Write(char* data);
+	bool Write(unsigned char* data);
 
+	bool WriteChar(unsigned char c);
 };

@@ -1,11 +1,34 @@
 #pragma once
 
+#define DATAFLOWDIRECTION_NONE 0
+#define DATAFLOWDIRECTION_WRITE 1
+#define DATAFLOWDIRECTION_READ 2
+#define DATAFLOWDIRECTION_BIDIRECTIONAL 3
 
 /*
 HOW DATA IS INTERPRETED:
 - Send out a ping to see if it gets a reply.
 - If a valid reply is recieved, send a request for the stream properties
 - The foreign device should send back some bytes formatted like so:
+
+
+byte[n0] : pair request
+	byte[no{0,1}] : 
+		x00xxxxxx: 0 = greeting (are you there?)
+		x01xxxxxx: 1 = reply (include what type of information flow should be included [n0{2,3}]
+		x10xxxxxx: 2 = update (include extra data that will change the contract)
+	byte[n0{2,3}] :
+		x0000xxxx:		0 = greeting (just send back that you exist)
+		x0001xxxx:16:	1 = greeting (reply to me)
+		x0100xxxx:		0 = reply (no data flow)
+		x0101xxxx:		1 = reply (sending information)
+		x0110xxxx:		2 = reply (receiving information)
+		x0111xxxx:		3 = reply (bi-directional data flow)
+		x1000xxxx:		0 = update
+
+if a reply is recieved of 3, we should expect that the data flow being sent will be sent, but that 
+we should send back any data that we are going to send in the other direction.
+
 
 byte[n0] : streamCount = how many data streams there are (0-255)
 
@@ -40,8 +63,30 @@ byte[n1-streamCount-n1^]:
 
 
 
+#include "IIO.h"
+
 
 class TinyStream{
-	bool SetInput(char &buffer);
+private:
+
+	unsigned char dataFlowDirection;
+
+	IIO* IO;
+	unsigned char state;
+
+
+public:
+
+
+	void SetDataFlowDirection(const unsigned char dataFlowDirection);
+	bool SetInput(IIO* IO);
+
+	TinyStream();
+
+	~TinyStream();
+
+	/*do everything it needs to do, based on the state it's in. If it hasn't paired with 
+	anything, set up the contract, if it has, try to read data from it.*/
+	bool Update();
 };
 
