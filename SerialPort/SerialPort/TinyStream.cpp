@@ -41,6 +41,7 @@ bool TinyStream::Update(){
 		IO->WriteChar(16);
 		//try to read back data, see if anything is returned
 		d = IO->ReadAll();
+		//std::cout << "[TEST]" << d;
 		break;
 	case 10:
 		break;
