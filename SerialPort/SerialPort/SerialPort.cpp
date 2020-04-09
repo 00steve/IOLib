@@ -101,7 +101,6 @@ unsigned char* SerialPort::Read(unsigned int length) {
 }
 
 unsigned char* SerialPort::ReadAll() {
-    std::cout << "-w";
     unsigned char* data;
     unsigned int length;
     if (readWriteFlip) {
@@ -111,8 +110,6 @@ unsigned char* SerialPort::ReadAll() {
         //bufferReadCursor += length;
         readWriteFlip = false;
         bufferReadCursor = 0;
-
-        std::cout << "read last of buffer and reset\n";
     }
     else {
         length = bufferWriteCursor - bufferReadCursor;
@@ -121,7 +118,8 @@ unsigned char* SerialPort::ReadAll() {
         bufferReadCursor += length;
 
     }
-    data[length - 1] = '\0';
+    data[length] = '\0';
+    std::cout << data;
     return data;
 }
 
@@ -146,13 +144,8 @@ char SerialPort::ReadChar() {
 }
 
 bool SerialPort::ReadToBuffer() {
-    std::cout << "-r";
-
-
     ReadFile(serialPort, &serialData, bufferReadSizeB, &bytesRead, NULL); // what I tried to do, just outputs white space
     if (bytesRead > 0) {
-        //data[bytesRead-1] = '\0';
-        //std::cout << "bytes read : " << bytesRead << " bufferWrite cursor : " << bufferWriteCursor << " bufferSize " << bufferSizeB << "\n";
         /*check to make sure what is going to be written won't overflow the buffer. If it is going 
         to, set the buffer data length flag (so reading doesn't go past it), and reset the write 
         cursor to the beginning of the buffer.*/
@@ -160,15 +153,12 @@ bool SerialPort::ReadToBuffer() {
             bufferDataLength = bufferWriteCursor;
             bufferWriteCursor = 0;
             readWriteFlip = true;
-            std::cout << "[reached end of buffer]\n";
         }
 
         //copy the data read from the serial port to the buffer at the correct offset.
         memcpy(&buffer[bufferWriteCursor], serialData, sizeof(char)*bytesRead);
         //increment the write cursor by the number of bytes read.
         bufferWriteCursor += bytesRead;
-        //output some text for the chumps.
-        //std::cout << bytesRead << " data: " << buffer << std::endl;
     }
     return bytesRead > 0;
 }
@@ -178,8 +168,8 @@ SerialPort::SerialPort() :
     bufferDataLength(0),
     bufferReadCursor(0),
     bufferReadSizeB(128),
-    bufferSizeB(1024),
-    bufferSizeKB(1),
+    bufferSizeB(0),
+    bufferSizeKB(4),
     bufferWriteCursor(0),
     bytesRead(0),
     bytesWritten(0),
