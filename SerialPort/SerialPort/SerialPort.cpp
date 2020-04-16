@@ -101,22 +101,36 @@ unsigned char* SerialPort::Read(unsigned int length) {
 }
 
 unsigned char* SerialPort::ReadAll() {
-    unsigned char* data;
-    unsigned int length;
+    unsigned char* data = new unsigned char[0];
+    unsigned int length = 0;
+    /*If the read cursor and write cursor have flipped (the read cursor > write cursor) because the 
+    write cursor got to the end of the buffer and the read cursor is still trying to catch up, get 
+    the length of data left to read between the buffer data length and read cursor. If it is more than
+    0, read all of the data that is left. 
+    
+    No matter what reset the read cursor to the beginning of the buffer and set the read write flip 
+    flag back to the defualt of false*/
     if (readWriteFlip) {
         length = bufferDataLength - bufferReadCursor;
-        data = new unsigned char[length + 1];
-        memcpy(data, &buffer[bufferReadCursor], sizeof(char) * length);
-        //bufferReadCursor += length;
+        if (length > 0) {
+            data = new unsigned char[length + 1];
+            memcpy(data, &buffer[bufferReadCursor], sizeof(char) * length);
+        }
         readWriteFlip = false;
         bufferReadCursor = 0;
     }
-    else {
+    /*If the read and write cursors have not flipped, and no data has been read yet, read everything
+    from the read cursor to the buffer write buffer (everything that has has been written since the 
+    last read all.
+    
+    If I wanted to get fancy we could read all of this too, so if the write cursor looped and wrote 
+    more data the above part would get the data left and this would add to it. But we have the 
+    length == 0 so that if something was already written we say it's good enough.*/
+    if(!readWriteFlip && length == 0) {
         length = bufferWriteCursor - bufferReadCursor;
         data = new unsigned char[length+1];
         memcpy(data, &buffer[bufferReadCursor], sizeof(char)*length);
         bufferReadCursor += length;
-
     }
     data[length] = '\0';
     std::cout << data;
@@ -167,7 +181,7 @@ SerialPort::SerialPort() :
     buffer(NULL),
     bufferDataLength(0),
     bufferReadCursor(0),
-    bufferReadSizeB(128),
+    bufferReadSizeB(127),
     bufferSizeB(0),
     bufferSizeKB(4),
     bufferWriteCursor(0),
