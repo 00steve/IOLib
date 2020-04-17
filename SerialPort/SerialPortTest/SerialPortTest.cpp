@@ -3,9 +3,23 @@
 
 #include "../SerialPort/SerialPort.h"
 #include "../SerialPort/TinyStream.h"
+#include "../SerialPort/Bit.h"
 
-int main()
-{
+int main(){
+
+
+    //char i = 16;
+    //Bit::Print(i); std::cout << "\n";
+    //char x = BITMASKL2;
+    //Bit::Print(x); std::cout << "\n";
+    //x = x >> 4;
+    //Bit::Print(x); std::cout << "\n";
+    //char f = 143;
+    //Bit::Print(f); std::cout << "\n";
+    //f = Bit::Get(f, 5, 3);
+    //Bit::Print(f); std::cout << " = " << (unsigned int)f <<"\n";
+    
+
     SerialPort sp = SerialPort();
     TinyStream ts = TinyStream();
 
@@ -17,7 +31,7 @@ int main()
         sp.ReadToBuffer();
         ts.Update();
     }
-
+    
 
     //sp.Close();
 }

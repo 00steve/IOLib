@@ -16,6 +16,8 @@ public:
 
 	virtual char ReadChar() = 0;
 
+	virtual bool TryRead(unsigned char*& data, unsigned int length) = 0;
+
 	virtual bool Write(unsigned char* data) = 0;
 
 	virtual bool WriteChar(unsigned char c) = 0;

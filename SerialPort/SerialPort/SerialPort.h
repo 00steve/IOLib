@@ -62,6 +62,13 @@ public:
 	
 	void SetBufferSize(unsigned int bufferSizeMB);
 
+	/*
+	TryRead will attempt to read the number of bytes needed, return true, and store the read bytes
+	in the pointer that was passed in as the data argument. If it is not able to read as many bytes 
+	as requested,it will return false and not store anything in the data argument.
+	*/
+	bool TryRead(unsigned char*& data, unsigned int length);
+
 	bool Write(unsigned char* data);
 
 	bool WriteChar(unsigned char c);

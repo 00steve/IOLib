@@ -133,7 +133,7 @@ unsigned char* SerialPort::ReadAll() {
         bufferReadCursor += length;
     }
     data[length] = '\0';
-    std::cout << data;
+    //std::cout << data;
     return data;
 }
 
@@ -142,46 +142,55 @@ char SerialPort::ReadChar() {
         bufferReadCursor = 0;
         readWriteFlip = true;
     }
-
     char c = 0;
     //if read cursor is behind the write cursor and the index of the read cursor is lower than the write cursor.
     //or read cursor is ahead of the write cursor and the index of the read cursor is higher than the write cursor.
     if (readWriteFlip ^ (bufferReadCursor < bufferWriteCursor)) {
         c = buffer[bufferReadCursor];
-
         ++bufferReadCursor;
     }
-
-    //if(bufferReadCursor < bufferWriteCursor && )
     std::cout << "character[" << bufferReadCursor << "] : " << c << std::endl;
     return c;
 }
 
 bool SerialPort::ReadToBuffer() {
-    ReadFile(serialPort, &serialData, bufferReadSizeB, &bytesRead, NULL); // what I tried to do, just outputs white space
-    if (bytesRead > 0) {
-        /*check to make sure what is going to be written won't overflow the buffer. If it is going 
-        to, set the buffer data length flag (so reading doesn't go past it), and reset the write 
-        cursor to the beginning of the buffer.*/
-        if (bytesRead + bufferWriteCursor > bufferSizeB) {
-            bufferDataLength = bufferWriteCursor;
-            bufferWriteCursor = 0;
-            readWriteFlip = true;
-        }
-
-        //copy the data read from the serial port to the buffer at the correct offset.
-        memcpy(&buffer[bufferWriteCursor], serialData, sizeof(char)*bytesRead);
-        //increment the write cursor by the number of bytes read.
-        bufferWriteCursor += bytesRead;
+    /*If read and write have flipped and the amount of data that will read into the buffer would make it overlap
+    the read buffer, don't read anything, just return false*/
+    if (readWriteFlip && bufferReadSizeB + bufferWriteCursor > bufferReadCursor) {
+        bytesRead = 0;
+        return false;
     }
-    return bytesRead > 0;
+    
+    ReadFile(serialPort, &serialData, bufferReadSizeB, &bytesRead, NULL); 
+
+    if (bytesRead == 0) {
+        bytesRead = 0;
+        return false;
+    }
+
+    /*check to make sure what is going to be written won't overflow the buffer. If it is going 
+    to, set the buffer data length flag (so reading doesn't go past it), and reset the write 
+    cursor to the beginning of the buffer.*/
+    if (bytesRead + bufferWriteCursor > bufferSizeB) {
+        bufferDataLength = bufferWriteCursor;
+        bufferWriteCursor = 0;
+        readWriteFlip = true;
+    }
+
+    //copy the data read from the serial port to the buffer at the correct offset.
+    memcpy(&buffer[bufferWriteCursor], serialData, sizeof(char)*bytesRead);
+
+    //increment the write cursor by the number of bytes read.
+    bufferWriteCursor += bytesRead;
+    
+    return true;
 }
 
 SerialPort::SerialPort() :
     buffer(NULL),
     bufferDataLength(0),
     bufferReadCursor(0),
-    bufferReadSizeB(127),
+    bufferReadSizeB(128),
     bufferSizeB(0),
     bufferSizeKB(4),
     bufferWriteCursor(0),
@@ -209,6 +218,42 @@ void SerialPort::SetBufferSize(unsigned int bufferSizeKB) {
     bufferSizeB = bufferSizeKB * 1024;
     bufferDataLength = bufferSizeB;
     buffer = new unsigned char[bufferSizeB];
+}
+
+bool SerialPort::TryRead(unsigned char*& data, unsigned int length)
+{
+    //unsigned char* data = new unsigned char[length+1];
+    unsigned int cursor = 0;
+    unsigned int bufferLeft;
+    unsigned int dataLeftBeforeEndOfBuffer;
+    bool flip = false;
+    if (readWriteFlip) {
+        dataLeftBeforeEndOfBuffer = bufferDataLength - bufferReadCursor;
+        bufferLeft = dataLeftBeforeEndOfBuffer + bufferWriteCursor;
+        flip = dataLeftBeforeEndOfBuffer < length;
+    } else {
+        bufferLeft = bufferWriteCursor - bufferReadCursor;
+    }
+
+    //std::cout << "bufferleft" << bufferLeft << "\tlength " << length << "\trwFlip: " << readWriteFlip << "\tbufferWriteCursor:" 
+     //   << bufferWriteCursor << "\tbufferReadCursor " << bufferReadCursor << std::endl;
+    if (bufferLeft < length) {
+        return false;
+    }
+
+    if (readWriteFlip && flip) {
+        //write the first part of data from the end of the buffer
+        memcpy(data, &buffer[bufferReadCursor], sizeof(char) * dataLeftBeforeEndOfBuffer);
+        //write the second part of the data from the beginning of the buffer
+        memcpy(&data[dataLeftBeforeEndOfBuffer], &buffer[bufferReadCursor], sizeof(char) * length-dataLeftBeforeEndOfBuffer);
+        bufferReadCursor = length - dataLeftBeforeEndOfBuffer;
+        readWriteFlip = false;
+    } else{
+        memcpy(data, &buffer[bufferReadCursor], sizeof(char) * length);
+        bufferReadCursor += length;
+    }
+    data[length] = '\0';
+    //std::cout << data;
 }
 
 bool SerialPort::Write(unsigned char* data) {
